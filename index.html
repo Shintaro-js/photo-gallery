@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shintaro Sneath</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;1,400&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #fff;
+      color: #111;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      font-weight: 300;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      overflow: hidden;
+    }
+    body.entered { overflow: auto; }
+
+    /* ── Enter screen ── */
+    #enter-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 300;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: opacity 0.8s ease;
+    }
+    #enter-screen.hide {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #enter-bg {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      transition: transform 12s ease;
+    }
+    #enter-screen:hover #enter-bg {
+      transform: scale(1.03);
+    }
+
+    /* dark overlay */
+    #enter-screen::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.32);
+    }
+
+    .enter-content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .enter-name {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      font-weight: 300;
+      font-size: 13px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.9);
+      white-space: nowrap;
+    }
+
+    .enter-link {
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.45);
+      transition: color 0.2s;
+    }
+    #enter-screen:hover .enter-link {
+      color: rgba(255,255,255,0.75);
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 22px 28px;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(8px);
+      opacity: 0;
+      transition: opacity 0.6s ease 0.4s;
+    }
+    body.entered nav { opacity: 1; }
+
+    .nav-name {
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #111;
+      text-decoration: none;
+    }
+
+    .nav-links { display: flex; gap: 28px; }
+    .nav-links a {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #999;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .nav-links a:hover { color: #111; }
+
+    /* ── Gallery ── */
+    .gallery {
+      padding: 80px 16px 60px;
+      columns: 3;
+      column-gap: 8px;
+      opacity: 0;
+      transition: opacity 0.6s ease 0.5s;
+    }
+    body.entered .gallery { opacity: 1; }
+
+    @media (max-width: 860px) { .gallery { columns: 2; } }
+    @media (max-width: 480px) { .gallery { columns: 1; } }
+
+    .photo-item {
+      break-inside: avoid;
+      margin-bottom: 8px;
+      cursor: pointer;
+      overflow: hidden;
+      display: block;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+    .photo-item.visible { opacity: 1; }
+
+    .photo-item img {
+      display: block;
+      width: 100%;
+      height: auto;
+      transition: transform 0.5s cubic-bezier(0.25,0.46,0.45,0.94);
+    }
+    .photo-item:hover img { transform: scale(1.02); }
+
+    /* ── Empty state ── */
+    .empty {
+      display: none;
+      text-align: center;
+      padding: 160px 24px;
+      color: #bbb;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      line-height: 2.2;
+    }
+    .empty.show { display: block; }
+    .empty code {
+      font-family: monospace;
+      background: #f5f5f5;
+      padding: 2px 6px;
+      border-radius: 2px;
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 11px;
+      color: #666;
+    }
+
+    /* ── Lightbox ── */
+    .lb {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    .lb.open { opacity: 1; pointer-events: all; }
+
+    .lb img {
+      max-width: 90vw;
+      max-height: 90vh;
+      object-fit: contain;
+      display: block;
+      transform: scale(0.98);
+      transition: transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94);
+    }
+    .lb.open img { transform: scale(1); }
+
+    .lb-close {
+      position: absolute;
+      top: 22px; right: 28px;
+      background: none; border: none;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #999;
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+    .lb-close:hover { color: #111; }
+
+    .lb-prev, .lb-next {
+      position: absolute;
+      top: 50%; transform: translateY(-50%);
+      background: none; border: none;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #bbb;
+      cursor: pointer;
+      padding: 20px;
+      transition: color 0.15s;
+    }
+    .lb-prev:hover, .lb-next:hover { color: #111; }
+    .lb-prev { left: 8px; }
+    .lb-next { right: 8px; }
+
+    .lb-counter {
+      position: absolute;
+      bottom: 24px; left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #bbb;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Enter screen -->
+  <div id="enter-screen">
+    <div id="enter-bg"></div>
+    <div class="enter-content">
+      <span class="enter-name">Shintaro Sneath</span>
+      <span class="enter-link">Enter</span>
+    </div>
+  </div>
+
+  <nav>
+    <a href="#" class="nav-name">Shintaro Sneath</a>
+    <div class="nav-links">
+      <a href="mailto:shintarojs@outlook.com">Contact</a>
+      <a href="https://www.instagram.com/espioarchive?utm_source=qr" target="_blank">Instagram</a>
+    </div>
+  </nav>
+
+  <div class="gallery" id="gallery"></div>
+  <div class="empty" id="empty">
+    Add images to <code>photos/</code> and list them in <code>gallery.js</code>
+  </div>
+
+  <!-- Lightbox -->
+  <div class="lb" id="lb">
+    <button class="lb-close" id="lb-close">Close</button>
+    <button class="lb-prev" id="lb-prev">←</button>
+    <img src="" alt="" id="lb-img" />
+    <button class="lb-next" id="lb-next">→</button>
+    <span class="lb-counter" id="lb-counter"></span>
+  </div>
+
+  <script src="gallery.js"></script>
+  <script>
+    const gallery = document.getElementById('gallery');
+    const empty = document.getElementById('empty');
+    const enterScreen = document.getElementById('enter-screen');
+    const enterBg = document.getElementById('enter-bg');
+
+    // Pick a random photo for the enter screen background
+    if (window.photos && photos.length > 0) {
+      const rand = photos[Math.floor(Math.random() * photos.length)];
+      enterBg.style.backgroundImage = `url('photos/${rand.file}')`;
+    } else {
+      enterBg.style.background = '#111';
+    }
+
+    // Enter on click
+    enterScreen.addEventListener('click', () => {
+      enterScreen.classList.add('hide');
+      document.body.classList.add('entered');
+      setTimeout(() => enterScreen.remove(), 900);
+    });
+
+    // Build gallery
+    if (!window.photos || photos.length === 0) {
+      empty.classList.add('show');
+    } else {
+      photos.forEach((p, i) => {
+        const el = document.createElement('div');
+        el.className = 'photo-item';
+        el.innerHTML = `<img src="photos/${p.file}" alt="${p.title || ''}" loading="lazy" />`;
+        el.addEventListener('click', () => openLb(i));
+        gallery.appendChild(el);
+      });
+
+      const io = new IntersectionObserver(entries => {
+        entries.forEach((e, idx) => {
+          if (e.isIntersecting) {
+            setTimeout(() => e.target.classList.add('visible'), idx * 40);
+            io.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.05 });
+      document.querySelectorAll('.photo-item').forEach(el => io.observe(el));
+    }
+
+    // Lightbox
+    const lb = document.getElementById('lb');
+    const lbImg = document.getElementById('lb-img');
+    const lbCounter = document.getElementById('lb-counter');
+    let cur = 0;
+
+    function openLb(i) {
+      cur = i; update();
+      lb.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeLb() {
+      lb.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+    function update() {
+      lbImg.src = `photos/${photos[cur].file}`;
+      lbCounter.textContent = `${cur + 1} / ${photos.length}`;
+    }
+
+    document.getElementById('lb-close').onclick = closeLb;
+    document.getElementById('lb-prev').onclick = () => { cur = (cur - 1 + photos.length) % photos.length; update(); };
+    document.getElementById('lb-next').onclick = () => { cur = (cur + 1) % photos.length; update(); };
+    lb.addEventListener('click', e => { if (e.target === lb) closeLb(); });
+    document.addEventListener('keydown', e => {
+      if (!lb.classList.contains('open')) return;
+      if (e.key === 'Escape') closeLb();
+      if (e.key === 'ArrowLeft') { cur = (cur - 1 + photos.length) % photos.length; update(); }
+      if (e.key === 'ArrowRight') { cur = (cur + 1) % photos.length; update(); }
+    });
+  </script>
+</body>
+</html>
